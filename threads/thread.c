@@ -350,6 +350,14 @@ void thread_awake(int64_t ticks)
 	}
 }
 
+bool thread_compare_priority(struct list_elem *l, struct list_elem *s, void *aux UNUSED)
+{
+	struct thread *t1 = list_entry(l, struct thread, elem);
+	struct thread *t2 = list_entry(s, struct thread, elem);
+
+	return t1->priority > t2->priority;
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
