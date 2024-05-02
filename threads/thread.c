@@ -244,7 +244,7 @@ void thread_unblock(struct thread *t)
 	ASSERT(t->status == THREAD_BLOCKED);
 	// list_push_back(&ready_list, &t->elem); // 라운드 로빈..
 	list_insert_ordered(&ready_list, &t->elem, thread_compare_priority, 0);
-	get_list(&ready_list, "thread_unblock() - ready_list"); // 디버깅
+	// get_list(&ready_list, "thread_unblock() - ready_list"); // 디버깅
 	t->status = THREAD_READY;
 	intr_set_level(old_level);
 }
@@ -337,8 +337,8 @@ void thread_sleep(int64_t ticks)
 
 	cur->wakeup = ticks;					 // 일어날 시간을 저장
 	list_push_back(&sleep_list, &cur->elem); // sleep_list 에 추가
-	get_list(&sleep_list, "sleep_list");	 // 디버깅
-	thread_block();							 // block 상태로 변경
+	// get_list(&sleep_list, "sleep_list");	 // 디버깅
+	thread_block(); // block 상태로 변경
 
 	intr_set_level(old_level); // 인터럽트 on
 }
