@@ -241,7 +241,8 @@ void thread_unblock(struct thread *t)
 
 	old_level = intr_disable();
 	ASSERT(t->status == THREAD_BLOCKED);
-	list_push_back(&ready_list, &t->elem);
+	// list_push_back(&ready_list, &t->elem); // 라운드 로빈..
+	list_insert_ordered(&ready_list, &t->elem, thread_compare_priority, 0);
 	get_list(&ready_list, "thread_unblock() - ready_list"); // 디버깅
 	t->status = THREAD_READY;
 	intr_set_level(old_level);
@@ -308,7 +309,8 @@ void thread_yield(void)
 	old_level = intr_disable();
 	if (curr != idle_thread)
 	{
-		list_push_back(&ready_list, &curr->elem);
+		// list_push_back(&ready_list, &curr->elem); // 라운드 로빈..
+		list_insert_ordered(&ready_list, &curr->elem, thread_compare_priority, 0);
 		// get_list(&ready_list, "thread_yield() - ready_list"); // 디버깅
 	}
 	do_schedule(THREAD_READY);
