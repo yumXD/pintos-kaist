@@ -315,6 +315,40 @@ void thread_yield(void)
 	intr_set_level(old_level);
 }
 
+void thread_sleep(int64_t ticks)
+{
+	struct thread *cur;
+	enum intr_level old_level;
+
+	old_level = intr_disable(); // 인터럽트 off
+	cur = thread_current();
+
+	ASSERT(cur != idle_thread);
+
+	cur->wakeup = ticks;					 // 일어날 시간을 저장
+	list_push_back(&sleep_list, &cur->elem); // sleep_list 에 추가
+	thread_block();							 // block 상태로 변경
+
+	intr_set_level(old_level); // 인터럽트 on
+}
+
+void thread_awake(int64_t ticks)
+{
+	struct list_elem *e = list_begin(&sleep_list);
+
+	while (e != list_end(&sleep_list))
+	{
+		struct thread *t = list_entry(e, struct thread, elem);
+		if (t->wakeup <= ticks)
+		{						// 스레드가 일어날 시간이 되었는지 확인
+			e = list_remove(e); // sleep list 에서 제거
+			thread_unblock(t);	// 스레드 unblock
+		}
+		else
+			e = list_next(e);
+	}
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
