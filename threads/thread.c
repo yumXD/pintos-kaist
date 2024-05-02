@@ -327,6 +327,7 @@ void thread_sleep(int64_t ticks)
 
 	cur->wakeup = ticks;					 // 일어날 시간을 저장
 	list_push_back(&sleep_list, &cur->elem); // sleep_list 에 추가
+	get_list(&sleep_list, "sleep_list");	 // 디버깅
 	thread_block();							 // block 상태로 변경
 
 	intr_set_level(old_level); // 인터럽트 on
