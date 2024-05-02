@@ -317,6 +317,13 @@ void thread_yield(void)
 	intr_set_level(old_level);
 }
 
+void thread_test_preemption(void)
+{
+	if (!list_empty(&ready_list) &&
+		thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority)
+		thread_yield();
+}
+
 void thread_sleep(int64_t ticks)
 {
 	struct thread *cur;

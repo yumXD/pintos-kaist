@@ -134,6 +134,7 @@ const char *thread_name(void);
 
 void thread_exit(void) NO_RETURN;
 void thread_yield(void);
+void thread_test_preemption(void);
 
 void thread_sleep(int64_t ticks);
 void thread_awake(int64_t ticks);
