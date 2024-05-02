@@ -239,6 +239,7 @@ void thread_unblock(struct thread *t)
 	old_level = intr_disable();
 	ASSERT(t->status == THREAD_BLOCKED);
 	list_push_back(&ready_list, &t->elem);
+	get_list(&ready_list, "thread_unblock() - ready_list"); // 디버깅
 	t->status = THREAD_READY;
 	intr_set_level(old_level);
 }
@@ -303,7 +304,10 @@ void thread_yield(void)
 
 	old_level = intr_disable();
 	if (curr != idle_thread)
+	{
 		list_push_back(&ready_list, &curr->elem);
+		// get_list(&ready_list, "thread_yield() - ready_list"); // 디버깅
+	}
 	do_schedule(THREAD_READY);
 	intr_set_level(old_level);
 }
@@ -538,6 +542,7 @@ do_schedule(int status)
 	{
 		struct thread *victim =
 			list_entry(list_pop_front(&destruction_req), struct thread, elem);
+		// get_list(&destruction_req, "do_schedule() - destruction_req"); // 디버깅
 		palloc_free_page(victim);
 	}
 	thread_current()->status = status;
@@ -577,6 +582,7 @@ schedule(void)
 		{
 			ASSERT(curr != next);
 			list_push_back(&destruction_req, &curr->elem);
+			// get_list(&destruction_req, "schedule() - destruction_req"); // 디버깅
 		}
 
 		/* Before switching the thread, we first save the information
@@ -597,4 +603,18 @@ allocate_tid(void)
 	lock_release(&tid_lock);
 
 	return tid;
+}
+
+void get_list(struct list *list, char *name)
+{
+	ASSERT(list != NULL);
+	struct list_elem *e;
+	int index = 0; // 인덱스 번호를 나타내는 변수
+	printf("------------------%s----------------------\n", name);
+	for (e = list_begin(list); e != list_end(list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, elem);
+		printf("Index: %d, 식별자(Tid): %d, 우선순위(priority): %d, 이름(Name): %s\n", index++, t->tid, t->priority, t->name); // index를 출력한 후에 증가
+	}
+	printf("-----------------------------------------------------------------------\n");
 }

@@ -138,6 +138,7 @@ struct list_elem *list_back(struct list *);
 /* List properties. */
 size_t list_size(struct list *);
 bool list_empty(struct list *);
+void get_list(struct list *, char *);
 
 /* Miscellaneous. */
 void list_reverse(struct list *);
