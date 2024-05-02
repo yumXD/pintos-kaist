@@ -130,6 +130,7 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
 	ticks++;
 	thread_tick();
+	thread_awake(ticks); // ticks 가 증가할때마다 awake 작업 수행
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
