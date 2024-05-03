@@ -254,6 +254,19 @@ bool lock_held_by_current_thread(const struct lock *lock)
 	return lock->holder == thread_current();
 }
 
+void remove_with_lock(struct lock *lock)
+{
+	struct list_elem *e;
+	struct thread *cur = thread_current();
+
+	for (e = list_begin(&cur->donations); e != list_end(&cur->donations); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, donation_elem);
+		if (t->wait_on_lock == lock)
+			list_remove(&t->donation_elem);
+	}
+}
+
 /* One semaphore in a list. */
 struct semaphore_elem
 {
