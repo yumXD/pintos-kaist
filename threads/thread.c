@@ -390,6 +390,22 @@ void donate_priority(void)
 	}
 }
 
+void refresh_priority(void)
+{
+	struct thread *cur = thread_current();
+
+	cur->priority = cur->init_priority;
+
+	if (!list_empty(&cur->donations))
+	{
+		list_sort(&cur->donations, thread_compare_donate_priority, 0);
+
+		struct thread *front = list_entry(list_front(&cur->donations), struct thread, donation_elem);
+		if (front->priority > cur->priority)
+			cur->priority = front->priority;
+	}
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {

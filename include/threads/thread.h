@@ -149,6 +149,7 @@ bool thread_compare_donate_priority(const struct list_elem *l, const struct list
 void donate_priority(void);
 
 void remove_with_lock(struct lock *lock);
+void refresh_priority(void);
 
 int thread_get_priority(void);
 void thread_set_priority(int);
