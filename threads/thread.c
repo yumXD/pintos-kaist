@@ -368,6 +368,13 @@ bool thread_compare_priority(struct list_elem *l, struct list_elem *s, void *aux
 	return t1->priority > t2->priority;
 }
 
+bool thread_compare_donate_priority(const struct list_elem *l, const struct list_elem *s, void *aux UNUSED)
+{
+	struct thread *t1 = list_entry(l, struct thread, donation_elem);
+	struct thread *t2 = list_entry(s, struct thread, donation_elem);
+	return t1->priority > t2->priority;
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {

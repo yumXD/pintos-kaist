@@ -145,6 +145,7 @@ void thread_awake(int64_t ticks);
 
 bool thread_compare_priority(struct list_elem *l, struct list_elem *s, void *aux UNUSED);
 bool sema_compare_priority(const struct list_elem *l, const struct list_elem *s, void *aux UNUSED);
+bool thread_compare_donate_priority(const struct list_elem *l, const struct list_elem *s, void *aux UNUSED);
 int thread_get_priority(void);
 void thread_set_priority(int);
 
