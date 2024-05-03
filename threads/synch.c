@@ -69,6 +69,7 @@ void sema_down(struct semaphore *sema)
 	{
 		// list_push_back(&sema->waiters, &thread_current()->elem);
 		list_insert_ordered(&sema->waiters, &thread_current()->elem, thread_compare_priority, 0); // semaphore는 waiters가 스레드들의 리스트
+		// get_list(&sema->waiters, "sema->waiters");												  // 디버깅
 		thread_block();
 	}
 	sema->value--;
@@ -291,6 +292,7 @@ void cond_wait(struct condition *cond, struct lock *lock)
 	sema_init(&waiter.semaphore, 0);
 	// list_push_back(&cond->waiters, &waiter.elem);
 	list_insert_ordered(&cond->waiters, &waiter.elem, sema_compare_priority, 0);
+	// get_list(&cond->waiters, "cond->waiters"); // 디버깅
 	lock_release(lock);
 	sema_down(&waiter.semaphore);
 	lock_acquire(lock);
