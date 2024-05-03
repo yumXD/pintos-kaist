@@ -93,9 +93,13 @@ struct thread
 	char name[16];			   /* Name (for debugging purposes). */
 	int priority;			   /* Priority. */
 	int64_t wakeup;			   // 깨어나야 하는 ticks 값
+	int init_priority;		   // 고유의 priority 값을 저장하는 변수
 
 	/* Shared between thread.c and synch.c. */
-	struct list_elem elem; /* List element. */
+	struct list_elem elem;			/* List element. */
+	struct lock *wait_on_lock;		// 스레드가 현재 얻기 위해 기다리고 있는 lock 으로 스레드는 이 lock이 release 되기를 기다린다!
+	struct list donations;			// 자신에게 priority를 나누어 준 스레드들의 리스트
+	struct list_elem donation_elem; // 이 donations리스트를 관리하기 위한 element, thread구조체의 그냥 elem과 구분하여 사용
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
