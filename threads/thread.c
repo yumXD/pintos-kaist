@@ -322,7 +322,12 @@ void thread_test_preemption(void)
 {
 	if (!list_empty(&ready_list) &&
 		thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority)
+	{
+		/** Project 2 Panic 방지 */
+		if (intr_context)
+			return;
 		thread_yield();
+	}
 }
 
 void thread_sleep(int64_t ticks)
