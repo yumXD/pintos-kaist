@@ -263,6 +263,49 @@ void process_activate(struct thread *next)
 	tss_update(next);
 }
 
+void argument_stack(char **argv, int argc, struct intr_frame *if_)
+{
+	// 각 매개변수의 주소를 저장할 배열
+	char *arg_addr[100];
+	// 매개변수의 길이
+	int argv_len;
+
+	// 매개변수 배열을 역순으로 순회
+	for (int i = argc - 1; i >= 0; i--)
+	{
+		// 현재 매개변수의 길이 계산
+		argv_len = strlen(argv[i]) + 1;
+		// 스택 포인터를 매개변수 길이만큼 이동 후 매개변수 복사
+		if_->rsp -= argv_len;
+		memcpy(if_->rsp, argv[i], argv_len);
+		// 매개변수의 주소를 배열에 저장
+		arg_addr[i] = if_->rsp;
+	}
+
+	// 스택 포인터를 8의 배수로 조정
+	while (!(if_->rsp % 8))
+		*(uint8_t *)(--if_->rsp) = 0;
+
+	// 매개변수의 주소를 역순으로 스택에 배치
+	for (int i = argc; i >= 0; i--)
+	{
+		// 스택 포인터를 8바이트씩 이동하며 매개변수 주소 복사
+		if_->rsp = if_->rsp - 8;
+		// argc가 마지막인 경우, NULL을 설정하고 아닌 경우 해당 매개변수의 주소 복사
+		if (i == argc)
+			memset(if_->rsp, 0, sizeof(char **));
+		else
+			memcpy(if_->rsp, &arg_addr[i], sizeof(char **));
+	}
+
+	// 함수 호출 시 사용할 레지스터 값 설정
+	// argc를 rdi 레지스터에, 매개변수 배열의 주소를 rsi 레지스터에 설정
+	if_->rsp = if_->rsp - 8;
+	memset(if_->rsp, 0, sizeof(void *));
+	if_->R.rdi = argc;
+	if_->R.rsi = if_->rsp + 8;
+}
+
 /* We load ELF binaries.  The following definitions are taken
  * from the ELF specification, [ELF1], more-or-less verbatim.  */
 
