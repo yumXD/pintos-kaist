@@ -51,7 +51,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		halt();
 		break;
 	case SYS_EXIT:
-		/* code */
+		exit(f->R.rdi);
 		break;
 	case SYS_FORK:
 		/* code */
