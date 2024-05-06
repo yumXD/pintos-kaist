@@ -14,6 +14,7 @@ void check_address(void *uaddr);
 void exit(int status);
 
 void halt(void);
+bool create(const char *file, unsigned initial_size);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -63,7 +64,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		/* code */
 		break;
 	case SYS_CREATE:
-		/* code */
+		f->R.rax = create(f->R.rdi, f->R.rsi);
 		break;
 	case SYS_REMOVE:
 		/* code */
@@ -117,4 +118,10 @@ void exit(int status)
 void halt(void)
 {
 	power_off();
+}
+
+bool create(const char *file, unsigned initial_size)
+{
+	check_address(file);
+	return filesys_create(file, initial_size); // 파일 이름과 크기
 }
