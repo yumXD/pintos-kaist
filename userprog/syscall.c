@@ -28,6 +28,7 @@ int read(int fd, void *buffer, unsigned size);
 int write(int fd, const void *buffer, unsigned size);
 tid_t fork(const char *thread_name, struct intr_frame *f);
 int exec(const char *file);
+int wait(int pid);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -75,7 +76,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		f->R.rax = exec(f->R.rdi);
 		break;
 	case SYS_WAIT:
-		/* code */
+		f->R.rax = wait(f->R.rdi);
 		break;
 	case SYS_CREATE:
 		f->R.rax = create(f->R.rdi, f->R.rsi);
@@ -282,4 +283,9 @@ int exec(const char *file)
 	// 스레드의 이름을 변경하지 않고 바로 실행한다.
 	if (process_exec(file_copy) == -1)
 		exit(-1); // 실패 시 status -1로 종료한다.
+}
+
+int wait(int pid)
+{
+	return process_wait(pid);
 }
