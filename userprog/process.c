@@ -186,7 +186,7 @@ int process_exec(void *f_name)
 
 	char *ptr, *arg;
 	int arg_cnt = 0;
-	char *arg_list[32];
+	char *arg_list[64];
 
 	for (arg = strtok_r(file_name, " ", &ptr); arg != NULL; arg = strtok_r(NULL, " ", &ptr))
 		arg_list[arg_cnt++] = arg;
@@ -194,14 +194,20 @@ int process_exec(void *f_name)
 	/* And then load the binary */
 	success = load(file_name, &_if);
 
-	argument_stack(arg_list, arg_cnt, &_if);
-
 	/* If load failed, quit. */
-	palloc_free_page(file_name);
 	if (!success)
+	{
+		palloc_free_page(file_name);
 		return -1;
+	}
 
-	hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true); // 0x47480000
+	argument_stack(arg_list, arg_cnt, &_if.rsp); // 함수 내부에서 parse와 rsp의 값을 직접 변경하기 위해 주소 전달
+	_if.R.rdi = arg_cnt;
+	_if.R.rsi = (char *)_if.rsp + 8;
+
+	// hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
+
+	palloc_free_page(file_name);
 
 	/* Start switched process. */
 	do_iret(&_if);
@@ -222,9 +228,8 @@ int process_wait(tid_t child_tid UNUSED)
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	for (int i = 0; i < 100000000; i++)
-	{
-	}
+	for (int i = 0; i < 1000000000; i++)
+		;
 	return -1;
 }
 
@@ -280,47 +285,41 @@ void process_activate(struct thread *next)
 	tss_update(next);
 }
 
-void argument_stack(char **argv, int argc, struct intr_frame *if_)
+void argument_stack(char **parse, int count, void **rsp) // 주소를 전달받았으므로 이중 포인터 사용
 {
-	// 각 매개변수의 주소를 저장할 배열
-	char *arg_addr[100];
-	// 매개변수의 길이
-	int argv_len;
-
-	// 매개변수 배열을 역순으로 순회
-	for (int i = argc - 1; i >= 0; i--)
+	// 프로그램 이름, 인자 문자열 push
+	for (int i = count - 1; i > -1; i--)
 	{
-		// 현재 매개변수의 길이 계산
-		argv_len = strlen(argv[i]) + 1;
-		// 스택 포인터를 매개변수 길이만큼 이동 후 매개변수 복사
-		if_->rsp -= argv_len;
-		memcpy(if_->rsp, argv[i], argv_len);
-		// 매개변수의 주소를 배열에 저장
-		arg_addr[i] = if_->rsp;
+		for (int j = strlen(parse[i]); j > -1; j--)
+		{
+			(*rsp)--;					  // 스택 주소 감소
+			**(char **)rsp = parse[i][j]; // 주소에 문자 저장
+		}
+		parse[i] = *(char **)rsp; // parse[i]에 현재 rsp의 값 저장해둠(지금 저장한 인자가 시작하는 주소값)
 	}
 
-	// 스택 포인터를 8의 배수로 조정
-	while (!(if_->rsp % 8))
-		*(uint8_t *)(--if_->rsp) = 0;
-
-	// 매개변수의 주소를 역순으로 스택에 배치
-	for (int i = argc; i >= 0; i--)
+	// 정렬 패딩 push
+	int padding = (int)*rsp % 8;
+	for (int i = 0; i < padding; i++)
 	{
-		// 스택 포인터를 8바이트씩 이동하며 매개변수 주소 복사
-		if_->rsp = if_->rsp - 8;
-		// argc가 마지막인 경우, NULL을 설정하고 아닌 경우 해당 매개변수의 주소 복사
-		if (i == argc)
-			memset(if_->rsp, 0, sizeof(char **));
-		else
-			memcpy(if_->rsp, &arg_addr[i], sizeof(char **));
+		(*rsp)--;
+		**(uint8_t **)rsp = 0; // rsp 직전까지 값 채움
 	}
 
-	// 함수 호출 시 사용할 레지스터 값 설정
-	// argc를 rdi 레지스터에, 매개변수 배열의 주소를 rsi 레지스터에 설정
-	if_->rsp = if_->rsp - 8;
-	memset(if_->rsp, 0, sizeof(void *));
-	if_->R.rdi = argc;
-	if_->R.rsi = if_->rsp + 8;
+	// 인자 문자열 종료를 나타내는 0 push
+	(*rsp) -= 8;
+	**(char ***)rsp = 0;
+
+	// 각 인자 문자열의 주소 push
+	for (int i = count - 1; i > -1; i--)
+	{
+		(*rsp) -= 8; // 다음 주소로 이동
+		**(char ***)rsp = parse[i];
+	}
+
+	// return address push
+	(*rsp) -= 8;
+	**(void ***)rsp = 0;
 }
 
 /* We load ELF binaries.  The following definitions are taken
@@ -646,6 +645,45 @@ install_page(void *upage, void *kpage, bool writable)
 	 * address, then map our page there. */
 	return (pml4_get_page(t->pml4, upage) == NULL && pml4_set_page(t->pml4, upage, kpage, writable));
 }
+
+/* 파일 객체에 대한 파일 디스크립터를 생성하는 함수 */
+int process_add_file(struct file *f)
+{
+	struct thread *curr = thread_current();
+	struct file **fdt = curr->fdt;
+
+	/* limit을 넘지 않는 범위 안에서 빈 자리 탐색 */
+	while (curr->next_fd < FDT_COUNT_LIMIT && fdt[curr->next_fd])
+		curr->next_fd++;
+	if (curr->next_fd >= FDT_COUNT_LIMIT)
+		return -1;
+	fdt[curr->next_fd] = f;
+
+	return curr->next_fd;
+}
+
+/* 파일 객체를 검색하는 함수 */
+struct file *process_get_file(int fd)
+{
+	struct thread *curr = thread_current();
+	struct file **fdt = curr->fdt;
+	/* 파일 디스크립터에 해당하는 파일 객체를 리턴 */
+	/* 없을 시 NULL 리턴 */
+	if (fd < 2 || fd >= FDT_COUNT_LIMIT)
+		return NULL;
+	return fdt[fd];
+}
+
+/* 파일 디스크립터 테이블에서 파일 객체를 제거하는 함수 */
+void process_close_file(int fd)
+{
+	struct thread *curr = thread_current();
+	struct file **fdt = curr->fdt;
+	if (fd < 2 || fd >= FDT_COUNT_LIMIT)
+		return NULL;
+	fdt[fd] = NULL;
+}
+
 #else
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
@@ -718,41 +756,3 @@ setup_stack(struct intr_frame *if_)
 	return success;
 }
 #endif /* VM */
-
-/* 파일 객체에 대한 파일 디스크립터를 생성하는 함수 */
-int process_add_file(struct file *f)
-{
-	struct thread *curr = thread_current();
-	struct file **fdt = curr->fdt;
-
-	/* limit을 넘지 않는 범위 안에서 빈 자리 탐색 */
-	while (curr->next_fd < FDT_COUNT_LIMIT && fdt[curr->next_fd])
-		curr->next_fd++;
-	if (curr->next_fd >= FDT_COUNT_LIMIT)
-		return -1;
-	fdt[curr->next_fd] = f;
-
-	return curr->next_fd;
-}
-
-/* 파일 객체를 검색하는 함수 */
-struct file *process_get_file(int fd)
-{
-	struct thread *curr = thread_current();
-	struct file **fdt = curr->fdt;
-	/* 파일 디스크립터에 해당하는 파일 객체를 리턴 */
-	/* 없을 시 NULL 리턴 */
-	if (fd < 2 || fd >= FDT_COUNT_LIMIT)
-		return NULL;
-	return fdt[fd];
-}
-
-/* 파일 디스크립터 테이블에서 파일 객체를 제거하는 함수 */
-void process_close_file(int fd)
-{
-	struct thread *curr = thread_current();
-	struct file **fdt = curr->fdt;
-	if (fd < 2 || fd >= FDT_COUNT_LIMIT)
-		return NULL;
-	fdt[fd] = NULL;
-}
