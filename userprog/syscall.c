@@ -5,9 +5,15 @@
 #include "threads/thread.h"
 #include "threads/loader.h"
 #include "userprog/gdt.h"
+#include "userprog/process.h"
 #include "threads/flags.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
 #include "intrinsic.h"
 #include "threads/synch.h"
+#include "devices/input.h"
+#include "lib/kernel/stdio.h"
+#include "threads/palloc.h"
 
 struct lock filesys_lock;
 
