@@ -80,9 +80,15 @@ initd(void *f_name)
  * TID_ERROR if the thread cannot be created. */
 tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 {
+	// 현재 스레드의 parent_if에 복제해야 하는 if를 복사한다.
+	struct thread *cur = thread_current();
+	memcpy(&cur->parent_if, if_, sizeof(struct intr_frame));
+
 	/* Clone current thread to new thread.*/
-	return thread_create(name,
-						 PRI_DEFAULT, __do_fork, thread_current());
+	// 현재 스레드를 fork한 new 스레드를 생성한다.
+	tid_t pid = thread_create(name, PRI_DEFAULT, __do_fork, cur);
+	if (pid == TID_ERROR)
+		return TID_ERROR;
 }
 
 #ifndef VM

@@ -122,6 +122,8 @@ struct thread
 
 	struct file **fdt;
 	int next_fd;
+
+	struct intr_frame parent_if;
 };
 
 /* If false (default), use round-robin scheduler.
