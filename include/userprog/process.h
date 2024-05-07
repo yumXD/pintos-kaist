@@ -11,4 +11,5 @@ void process_exit(void);
 void process_activate(struct thread *next);
 void argument_stack(char **argv, int argc, struct intr_frame *if_);
 int process_add_file(struct file *f);
+struct file *process_get_file(int fd);
 #endif /* userprog/process.h */
