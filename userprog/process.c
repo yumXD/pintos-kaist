@@ -89,6 +89,23 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 	tid_t pid = thread_create(name, PRI_DEFAULT, __do_fork, cur);
 	if (pid == TID_ERROR)
 		return TID_ERROR;
+
+	// 자식이 로드될 때까지 대기하기 위해서 방금 생성한 자식 스레드를 찾는다.
+	struct thread *child = get_child_process(pid);
+
+	// 현재 스레드는 생성만 완료된 상태이다. 생성되어서 ready_list에 들어가고 실행될 때 __do_fork 함수가 실행된다.
+	// __do_fork 함수가 실행되어 로드가 완료될 때까지 부모는 대기한다.
+	sema_down(&child->load_sema);
+
+	// 자식이 로드되다가 오류로 exit한 경우
+	if (child->exit_status == TID_ERROR)
+	{
+		// 자식 프로세스의 pid가 아닌 TID_ERROR를 반환한다.
+		return TID_ERROR;
+	}
+
+	// 자식 프로세스의 pid를 반환한다.
+	return pid;
 }
 
 #ifndef VM
@@ -688,6 +705,23 @@ void process_close_file(int fd)
 	if (fd < 2 || fd >= FDT_COUNT_LIMIT)
 		return NULL;
 	fdt[fd] = NULL;
+}
+
+// 자식 리스트에서 원하는 프로세스를 검색하는 함수
+struct thread *get_child_process(int pid)
+{
+	/* 자식 리스트에 접근하여 프로세스 디스크립터 검색 */
+	struct thread *cur = thread_current();
+	struct list *child_list = &cur->child_list;
+	for (struct list_elem *e = list_begin(child_list); e != list_end(child_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, child_elem);
+		/* 해당 pid가 존재하면 프로세스 디스크립터 반환 */
+		if (t->tid == pid)
+			return t;
+	}
+	/* 리스트에 존재하지 않으면 NULL 리턴 */
+	return NULL;
 }
 
 #else

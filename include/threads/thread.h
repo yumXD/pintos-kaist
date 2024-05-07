@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -126,6 +127,8 @@ struct thread
 	struct intr_frame parent_if;
 	struct list child_list;
 	struct list_elem child_elem;
+
+	struct semaphore load_sema;
 };
 
 /* If false (default), use round-robin scheduler.
