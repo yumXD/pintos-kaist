@@ -24,6 +24,7 @@ int filesize(int fd);
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
+int read(int fd, void *buffer, unsigned size);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -86,7 +87,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		f->R.rax = filesize(f->R.rdi);
 		break;
 	case SYS_READ:
-		/* code */
+		f->R.rax = read(f->R.rdi, f->R.rsi, f->R.rdx);
 		break;
 	case SYS_WRITE:
 		/* code */
@@ -193,4 +194,42 @@ void close(int fd)
 		return;
 	file_close(file);
 	process_close_file(fd);
+}
+
+int read(int fd, void *buffer, unsigned size)
+{
+	check_address(buffer);
+
+	char *ptr = (char *)buffer;
+	int bytes_read = 0;
+
+	lock_acquire(&filesys_lock);
+	if (fd == STDIN_FILENO)
+	{
+		for (int i = 0; i < size; i++)
+		{
+			*ptr++ = input_getc();
+			bytes_read++;
+		}
+		lock_release(&filesys_lock);
+	}
+	else
+	{
+		if (fd < 2)
+		{
+
+			lock_release(&filesys_lock);
+			return -1;
+		}
+		struct file *file = process_get_file(fd);
+		if (file == NULL)
+		{
+
+			lock_release(&filesys_lock);
+			return -1;
+		}
+		bytes_read = file_read(file, buffer, size);
+		lock_release(&filesys_lock);
+	}
+	return bytes_read;
 }
