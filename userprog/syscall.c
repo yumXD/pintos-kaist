@@ -21,6 +21,7 @@ bool create(const char *file, unsigned initial_size);
 bool remove(const char *file);
 int open(const char *file_name);
 int filesize(int fd);
+void seek(int fd, unsigned position);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -89,7 +90,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		/* code */
 		break;
 	case SYS_SEEK:
-		/* code */
+		seek(f->R.rdi, f->R.rsi);
 		break;
 	case SYS_TELL:
 		/* code */
@@ -165,4 +166,12 @@ int filesize(int fd)
 	if (file == NULL)
 		return -1;
 	return file_length(file);
+}
+
+void seek(int fd, unsigned position)
+{
+	struct file *file = process_get_file(fd);
+	if (file == NULL)
+		return;
+	file_seek(file, position);
 }
