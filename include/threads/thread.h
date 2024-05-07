@@ -129,6 +129,7 @@ struct thread
 	struct list_elem child_elem;
 
 	struct semaphore load_sema;
+	struct file *running; // 현재 실행중인 파일
 };
 
 /* If false (default), use round-robin scheduler.

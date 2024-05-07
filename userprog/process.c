@@ -292,6 +292,7 @@ void process_exit(void)
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+	file_close(curr->running); // 현재 실행 중인 파일도 닫는다.
 	process_cleanup();
 }
 
@@ -527,12 +528,18 @@ load(const char *file_name, struct intr_frame *if_)
 		}
 	}
 
+	// 스레드가 삭제될 때 파일을 닫을 수 있게 구조체에 파일을 저장해둔다.
+	t->running = file;
+	// 현재 실행중인 파일은 수정할 수 없게 막는다.
+	file_deny_write(file);
+
 	/* Set up stack. */
-	if (!setup_stack(if_))
+	if (!setup_stack(if_)) // user stack 초기화
 		goto done;
 
 	/* Start address. */
-	if_->rip = ehdr.e_entry;
+	if_->rip = ehdr.e_entry; // entry point 초기화
+	// rip: 프로그램 카운터(실행할 다음 인스트럭션의 메모리  주소)
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
@@ -541,7 +548,8 @@ load(const char *file_name, struct intr_frame *if_)
 
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close(file);
+	// 파일을 여기서 닫지 않고 스레드가 삭제될 때 process_exit에서 닫는다.
+	// file_close(file);
 	return success;
 }
 
