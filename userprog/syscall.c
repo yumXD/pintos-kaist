@@ -19,6 +19,7 @@ void exit(int status);
 void halt(void);
 bool create(const char *file, unsigned initial_size);
 bool remove(const char *file);
+int open(const char *file_name);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -75,7 +76,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		f->R.rax = remove(f->R.rdi);
 		break;
 	case SYS_OPEN:
-		/* code */
+		f->R.rax = open(f->R.rdi);
 		break;
 	case SYS_FILESIZE:
 		/* code */
@@ -135,4 +136,21 @@ bool remove(const char *file)
 {
 	check_address(file);
 	return filesys_remove(file);
+}
+
+int open(const char *file_name)
+{
+	check_address(file_name);
+	lock_acquire(&filesys_lock);
+	struct file *file = filesys_open(file_name);
+	if (file == NULL)
+	{
+		lock_release(&filesys_lock);
+		return -1;
+	}
+	int fd = process_add_file(file);
+	if (fd == -1)
+		file_close(file);
+	lock_release(&filesys_lock);
+	return fd;
 }
