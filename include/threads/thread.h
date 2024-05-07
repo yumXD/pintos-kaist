@@ -28,6 +28,9 @@ typedef int tid_t;
 #define PRI_DEFAULT 31 /* Default priority. */
 #define PRI_MAX 63	   /* Highest priority. */
 
+#define FDT_PAGES 2
+#define FDT_COUNT_LIMIT 128
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -116,6 +119,9 @@ struct thread
 
 	/*Project 2*/
 	int exit_status;
+
+	struct file **fdt;
+	int next_fd;
 };
 
 /* If false (default), use round-robin scheduler.
