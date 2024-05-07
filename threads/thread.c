@@ -205,6 +205,9 @@ tid_t thread_create(const char *name, int priority,
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
+	// 현재 스레드의 자식으로 추가
+	list_push_back(&thread_current()->child_list, &t->child_elem);
+
 	/* Add to run queue. */
 	thread_unblock(t);
 	thread_test_preemption();
@@ -523,6 +526,7 @@ init_thread(struct thread *t, const char *name, int priority)
 
 	t->exit_status = 0;
 	t->next_fd = 2;
+	list_init(&(t->child_list));
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

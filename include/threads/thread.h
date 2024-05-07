@@ -124,6 +124,8 @@ struct thread
 	int next_fd;
 
 	struct intr_frame parent_if;
+	struct list child_list;
+	struct list_elem child_elem;
 };
 
 /* If false (default), use round-robin scheduler.
