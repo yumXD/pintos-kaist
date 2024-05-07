@@ -22,6 +22,7 @@ bool remove(const char *file);
 int open(const char *file_name);
 int filesize(int fd);
 void seek(int fd, unsigned position);
+unsigned tell(int fd);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -93,7 +94,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		seek(f->R.rdi, f->R.rsi);
 		break;
 	case SYS_TELL:
-		/* code */
+		f->R.rax = tell(f->R.rdi);
 		break;
 	case SYS_CLOSE:
 		/* code */
@@ -174,4 +175,12 @@ void seek(int fd, unsigned position)
 	if (file == NULL)
 		return;
 	file_seek(file, position);
+}
+
+unsigned tell(int fd)
+{
+	struct file *file = process_get_file(fd);
+	if (file == NULL)
+		return;
+	return file_tell(file);
 }
