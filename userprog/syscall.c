@@ -26,6 +26,7 @@ unsigned tell(int fd);
 void close(int fd);
 int read(int fd, void *buffer, unsigned size);
 int write(int fd, const void *buffer, unsigned size);
+int exec(const char *file);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -70,7 +71,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		/* code */
 		break;
 	case SYS_EXEC:
-		/* code */
+		f->R.rax = exec(f->R.rdi);
 		break;
 	case SYS_WAIT:
 		/* code */
@@ -256,4 +257,23 @@ int write(int fd, const void *buffer, unsigned size)
 		lock_release(&filesys_lock);
 	}
 	return bytes_write;
+}
+
+int exec(const char *file)
+{
+	check_address(file);
+	/* process.c 파일의 process_create_initd 함수와 유사하다.
+		단, 스레드를 새로 생성하는 건 fork에서 수행하므로
+		이 함수에서는 새 스레드를 생성하지 않고 process_exec을 호출한다. */
+	/* 커널 메모리 공간에 file의 복사본을 만든다. */
+	/* process_exec 함수 안에서 전달 받은 인자를 parsing하는 과정이 있기 때문에 복사본을 만들어서 전달해야 한다. */
+	char *file_copy;
+	file_copy = palloc_get_page(0);
+	if (file_copy == NULL)
+		exit(-1);					  // 메모리 할당 실패 시 status -1로 종료한다.
+	strlcpy(file_copy, file, PGSIZE); // file을 복사한다.
+
+	// 스레드의 이름을 변경하지 않고 바로 실행한다.
+	if (process_exec(file_copy) == -1)
+		exit(-1); // 실패 시 status -1로 종료한다.
 }
