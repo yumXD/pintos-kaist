@@ -26,6 +26,7 @@ unsigned tell(int fd);
 void close(int fd);
 int read(int fd, void *buffer, unsigned size);
 int write(int fd, const void *buffer, unsigned size);
+tid_t fork(const char *thread_name, struct intr_frame *f);
 int exec(const char *file);
 /* System call.
  *
@@ -68,7 +69,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		exit(f->R.rdi);
 		break;
 	case SYS_FORK:
-		/* code */
+		f->R.rax = fork(f->R.rdi, f);
 		break;
 	case SYS_EXEC:
 		f->R.rax = exec(f->R.rdi);
@@ -257,6 +258,11 @@ int write(int fd, const void *buffer, unsigned size)
 		lock_release(&filesys_lock);
 	}
 	return bytes_write;
+}
+
+tid_t fork(const char *thread_name, struct intr_frame *f)
+{
+	return process_fork(thread_name, f);
 }
 
 int exec(const char *file)
