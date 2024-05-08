@@ -327,12 +327,11 @@ void thread_yield(void)
 
 void thread_test_preemption(void)
 {
+	if (thread_current() == idle_thread)
+		return;
 	if (!list_empty(&ready_list) &&
 		thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority)
 	{
-		/** Project 2 Panic 방지 */
-		if (intr_context)
-			return;
 		thread_yield();
 	}
 }
