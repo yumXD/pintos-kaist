@@ -95,6 +95,7 @@ static uint64_t gdt[3] = {0, 0x00af9a000000ffff, 0x00cf92000000ffff};
    finishes. */
 void thread_init(void)
 {
+	printf("-----1️⃣ thread_init 방문(메인 쓰레드 만들고 실행할꺼임)\n");
 	ASSERT(intr_get_level() == INTR_OFF);
 
 	/* Reload the temporal gdt for the kernel
@@ -122,6 +123,7 @@ void thread_init(void)
    Also creates the idle thread. */
 void thread_start(void)
 {
+	printf("-----1️⃣ thread_start 방문(유휴 스레드 만들꺼임)\n");
 	/* Create the idle thread. */
 	struct semaphore idle_started;
 	sema_init(&idle_started, 0);
@@ -130,8 +132,10 @@ void thread_start(void)
 	/* Start preemptive thread scheduling. */
 	intr_enable();
 
+	printf("-----1️⃣ thread_start 대기중... - \"%s\" 스레드 BLOCKED\n", thread_name());
 	/* Wait for the idle thread to initialize idle_thread. */
 	sema_down(&idle_started);
+	printf("-----1️⃣ thread_start 대기 해제~~ - \"%s\" 스레드\n", thread_name());
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -180,6 +184,7 @@ void thread_print_stats(void)
 tid_t thread_create(const char *name, int priority,
 					thread_func *function, void *aux)
 {
+	printf("🎯 thread_create 방문 - \"%s\" 스레드 생성 예정!\n", name);
 	struct thread *t;
 	tid_t tid;
 
@@ -332,6 +337,7 @@ void thread_test_preemption(void)
 	if (!list_empty(&ready_list) &&
 		thread_current()->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority)
 	{
+		printf("thread_current()->name : %s, list_entry(list_front(&ready_list), struct thread, elem)->name: %s\n", thread_name(), list_entry(list_front(&ready_list), struct thread, elem)->name);
 		thread_yield();
 	}
 }
@@ -470,11 +476,12 @@ int thread_get_recent_cpu(void)
 static void
 idle(void *idle_started_ UNUSED)
 {
+	printf("-----1️⃣💡 idle 방문 - \"%s\" 스레드\n", thread_name());
 	struct semaphore *idle_started = idle_started_;
 
 	idle_thread = thread_current();
+	printf("-----1️⃣💡 idle - idle_thread 할당된 쓰레드: \"%s\"\n", idle_thread->name);
 	sema_up(idle_started);
-
 	for (;;)
 	{
 		/* Let someone else run. */
@@ -495,6 +502,7 @@ idle(void *idle_started_ UNUSED)
 		   7.11.1 "HLT Instruction". */
 		asm volatile("sti; hlt" : : : "memory");
 	}
+	// 이 라인은 안옴
 }
 
 /* Function used as the basis for a kernel thread. */
@@ -530,8 +538,8 @@ init_thread(struct thread *t, const char *name, int priority)
 	t->exit_status = 0;
 	t->next_fd = 2;
 	list_init(&(t->child_list));
-	sema_init(&t->load_sema, 0);
-	sema_init(&t->exit_sema, 0);
+	sema_init(&t->load_sema, 0); // 자식 대기용...
+	sema_init(&t->exit_sema, 0); // 죽일 자식 리스트
 	sema_init(&t->wait_sema, 0);
 }
 
