@@ -50,7 +50,7 @@ int wait(int pid);
 
 void syscall_init(void)
 {
-	printf("----------2️⃣ syscall_init 방문\n");
+	// printf("----------2️⃣ syscall_init 방문\n");
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48 |
 							((uint64_t)SEL_KCSEG) << 32);
 	write_msr(MSR_LSTAR, (uint64_t)syscall_entry);
@@ -159,7 +159,7 @@ bool remove(const char *file)
 
 int open(const char *file_name)
 {
-	printf("----------2️⃣ 커널모드의 open 방문\n");
+	// printf("----------2️⃣ 커널모드의 open 방문\n");
 	check_address(file_name);
 	lock_acquire(&filesys_lock);
 	struct file *file = filesys_open(file_name);
@@ -271,7 +271,7 @@ int write(int fd, const void *buffer, unsigned size)
 
 tid_t fork(const char *thread_name, struct intr_frame *f)
 {
-	printf("----------2️⃣ 커널모드의 fork 방문\n");
+	// printf("----------2️⃣ 커널모드의 fork 방문\n");
 	return process_fork(thread_name, f);
 }
 

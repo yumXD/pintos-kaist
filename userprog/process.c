@@ -41,7 +41,7 @@ process_init(void)
  * Notice that THIS SHOULD BE CALLED ONCE. */
 tid_t process_create_initd(const char *file_name)
 {
-	printf("----------2️⃣ process_create_initd 방문 - \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣ process_create_initd 방문 - \"%s\" 스레드\n", thread_name());
 	char *fn_copy;
 	tid_t tid;
 
@@ -66,7 +66,7 @@ static void
 initd(void *f_name)
 {
 
-	printf("----------2️⃣💡 initd 방문(process_exec 실행 예정!) - \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣💡 initd 방문(process_exec 실행 예정!) - \"%s\" 스레드\n", thread_name());
 #ifdef VM
 	supplemental_page_table_init(&thread_current()->spt);
 #endif
@@ -82,7 +82,7 @@ initd(void *f_name)
  * TID_ERROR if the thread cannot be created. */
 tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 {
-	printf("----------2️⃣ 커널모드의 process_fork 방문(\"%s\" 스레드로 복제할꺼임) - \"%s\"스레드 \n", name, thread_name());
+	// printf("----------2️⃣ 커널모드의 process_fork 방문(\"%s\" 스레드로 복제할꺼임) - \"%s\"스레드 \n", name, thread_name());
 	// 현재 스레드의 parent_if에 복제해야 하는 if를 복사한다.
 	struct thread *cur = thread_current();
 	memcpy(&cur->parent_if, if_, sizeof(struct intr_frame));
@@ -96,12 +96,12 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 	// 자식이 로드될 때까지 대기하기 위해서 방금 생성한 자식 스레드를 찾는다.
 	struct thread *child = get_child_process(pid);
 
-	printf("----------2️⃣ process_fork 대기중... - \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣ process_fork 대기중... - \"%s\" 스레드\n", thread_name());
 	// 현재 스레드는 생성만 완료된 상태이다. 생성되어서 ready_list에 들어가고 실행될 때 __do_fork 함수가 실행된다.
 	// __do_fork 함수가 실행되어 로드가 완료될 때까지 부모는 대기한다.
 	sema_down(&child->load_sema);
 
-	printf("----------2️⃣ process_fork 대기 해제~~ - \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣ process_fork 대기 해제~~ - \"%s\" 스레드\n", thread_name());
 	// 자식이 로드되다가 오류로 exit한 경우
 	if (child->exit_status == TID_ERROR)
 	{
@@ -164,7 +164,7 @@ duplicate_pte(uint64_t *pte, void *va, void *aux)
 static void
 __do_fork(void *aux)
 {
-	printf("----------2️⃣💡 __do_fork 방문 - \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣💡 __do_fork 방문 - \"%s\" 스레드\n", thread_name());
 	struct intr_frame if_;
 	struct thread *parent = (struct thread *)aux;
 	struct thread *current = thread_current();
@@ -211,7 +211,7 @@ __do_fork(void *aux)
 
 	// 로드가 완료될 때까지 기다리고 있던 부모 대기 해제
 	sema_up(&current->load_sema);
-	printf("----------2️⃣💡 __do_fork - \"load_sema\" 대기 해제 시킬꺼임 -  \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣💡 __do_fork - \"load_sema\" 대기 해제 시킬꺼임 -  \"%s\" 스레드\n", thread_name());
 	process_init();
 
 	/* Finally, switch to the newly created process. */
@@ -227,7 +227,7 @@ error:
  * Returns -1 on fail. */
 int process_exec(void *f_name)
 {
-	printf("----------2️⃣ process_exec 방문 - \"%s\" 스레드, f_name: %s\n", thread_name(), f_name);
+	// printf("----------2️⃣ process_exec 방문 - \"%s\" 스레드, f_name: %s\n", thread_name(), f_name);
 	char *file_name = f_name;
 	bool success;
 
@@ -283,7 +283,7 @@ int process_exec(void *f_name)
  * does nothing. */
 int process_wait(tid_t child_tid UNUSED)
 {
-	printf("----------2️⃣ process_wait 방문 - \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣ process_wait 방문 - \"%s\" 스레드\n", thread_name());
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
@@ -291,11 +291,11 @@ int process_wait(tid_t child_tid UNUSED)
 	if (child == NULL) // 자식이 아니면 -1을 반환한다.
 		return -1;
 
-	printf("----------2️⃣ process_wait 대기중... - \"%s\" 스레드 BLOCKED \n", thread_name());
+	// printf("----------2️⃣ process_wait 대기중... - \"%s\" 스레드 BLOCKED \n", thread_name());
 	// 자식이 종료될 때까지 대기한다. (process_exit에서 자식이 종료될 때 sema_up 해줄 것이다.)
 	sema_down(&child->wait_sema);
-	printf("----------2️⃣ 부모 왈 - 자식이 종료!!!!\n");
-	printf("----------2️⃣ process_wait 대기 해제~~ - \"%s\" 스레드\n", thread_name());
+	// printf("----------2️⃣ 부모 왈 - 자식이 종료!!!!\n");
+	// printf("----------2️⃣ process_wait 대기 해제~~ - \"%s\" 스레드\n", thread_name());
 	// 자식이 종료됨을 알리는 `wait_sema` signal을 받으면 현재 스레드(부모)의 자식 리스트에서 제거한다.
 	list_remove(&child->child_elem);
 	// 자식이 완전히 종료되고 스케줄링이 이어질 수 있도록 자식에게 signal을 보낸다.
@@ -327,8 +327,8 @@ void process_exit(void)
 	// 자식이 종료될 때까지 대기하고 있는 부모에게 signal을 보낸다.
 	sema_up(&curr->wait_sema);
 
-	printf("----------2️⃣ 자식 왈! 부모님 저 종료요\n");
-	printf("----------2️⃣ process_exit - \"wait_sema\" 대기 해제 시킬꼐요 - \"%s\" 스레드 \n", thread_name());
+	// printf("----------2️⃣ 자식 왈! 부모님 저 종료요\n");
+	// printf("----------2️⃣ process_exit - \"wait_sema\" 대기 해제 시킬꼐요 - \"%s\" 스레드 \n", thread_name());
 	// 부모의 signal을 기다린다. 대기가 풀리고 나서 do_schedule(THREAD_DYING)이 이어져 다른 스레드가 실행된다.
 	sema_down(&curr->exit_sema);
 }
