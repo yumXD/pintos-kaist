@@ -129,6 +129,15 @@ vm_get_frame(void)
 {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
+	/* user pool에서 새로운 physical page를 가져온다. */
+	void *kva = palloc_get_page(PAL_USER);
+
+	if (kva == NULL)   // page 할당 실패
+		PANIC("TODO"); // 나중에 swap_out 처리
+
+	frame = (struct frame *)malloc(sizeof(struct frame)); // 프레임 할당
+	frame->kva = kva;									  // 프레임 멤버 초기화
+	frame->page = NULL;
 
 	ASSERT(frame != NULL);
 	ASSERT(frame->page == NULL);
@@ -168,10 +177,14 @@ void vm_dealloc_page(struct page *page)
 }
 
 /* Claim the page that allocate on VA. */
+/* va로 page를 찾아서 vm_do_claim_page를 호출하는 함수 */
 bool vm_claim_page(void *va UNUSED)
 {
 	struct page *page = NULL;
 	/* TODO: Fill this function */
+	page = spt_find_page(&thread_current()->spt, va);
+	if (page == NULL)
+		return false;
 
 	return vm_do_claim_page(page);
 }
@@ -187,6 +200,9 @@ vm_do_claim_page(struct page *page)
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	/* 가상 주소와 물리 주소를 매핑 */
+	struct thread *current = thread_current();
+	pml4_set_page(current->pml4, page->va, frame->kva, page->writable);
 
 	return swap_in(page, frame->kva);
 }
