@@ -766,6 +766,8 @@ lazy_load_segment(struct page *page, void *aux)
 
 	/* 다 읽은 지점부터 zero_bytes만큼 0으로 채운다. */
 	memset(page->frame->kva + lazy_load_arg->read_bytes, 0, lazy_load_arg->zero_bytes);
+
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
