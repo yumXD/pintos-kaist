@@ -58,7 +58,27 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 
+		/* 페이지를 생성하고, */
+		struct page *p = (struct page *)malloc(sizeof(struct page));
+		/* VM 유형에 따라 초기화 함수를 가져와서 */
+		bool (*page_initializer)(struct page *, enum vm_type, void *);
+
+		switch (VM_TYPE(type))
+		{
+		case VM_ANON:
+			page_initializer = anon_initializer;
+			break;
+		case VM_FILE:
+			page_initializer = file_backed_initializer;
+			break;
+		}
+		/* uninit_new를 호출해 "uninit" 페이지 구조체를 생성하세요. */
+		uninit_new(p, upage, init, type, aux, page_initializer);
+		/* uninit_new를 호출한 후에는 필드를 수정해야 합니다. */
+		p->writable = writable;
+
 		/* TODO: Insert the page into the spt. */
+		return spt_insert_page(spt, p);
 	}
 err:
 	return false;
@@ -162,10 +182,26 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 {
 	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
 	struct page *page = NULL;
-	/* TODO: Validate the fault */
-	/* TODO: Your code goes here */
 
-	return vm_do_claim_page(page);
+	if (addr == NULL)
+		return false;
+
+	if (is_kernel_vaddr(addr))
+		return false;
+
+	/* 접근한 메모리의 physical page가 존재하지 않은 경우 */
+	if (not_present)
+	{
+		/* TODO: Validate the fault */
+		/* TODO: Your code goes here */
+		page = spt_find_page(spt, addr);
+		if (page == NULL)
+			return false;
+		if (write == 1 && page->writable == 0) // write 불가능한 페이지에 write 요청한 경우
+			return false;
+		return vm_do_claim_page(page);
+	}
+	return false;
 }
 
 /* Free the page.
