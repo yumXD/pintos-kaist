@@ -14,6 +14,8 @@ int process_add_file(struct file *f);
 struct file *process_get_file(int fd);
 void process_close_file(int fd);
 struct thread *get_child_process(int pid);
+#ifdef VM
+
 struct lazy_load_arg
 {
     struct file *file;
@@ -21,4 +23,5 @@ struct lazy_load_arg
     uint32_t read_bytes;
     uint32_t zero_bytes;
 };
+#endif
 #endif /* userprog/process.h */
