@@ -250,16 +250,69 @@ void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 }
 
 /* Copy supplemental page table from src to dst */
+/* SPT를 복사하는 함수 (자식 프로세스가 부모 프로세스의 실행 컨텍스트를 상속해야 할 때 (즉, fork() 시스템 호출이 사용될 때) 사용) */
 bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 								  struct supplemental_page_table *src UNUSED)
 {
+	// TODO: 보조 페이지 테이블을 src에서 dst로 복사합니다.
+	// TODO: src의 각 페이지를 순회하고 dst에 해당 entry의 사본을 만듭니다.
+	// TODO: uninit page를 할당하고 그것을 즉시 claim해야 합니다.
+	struct hash_iterator i;
+	hash_first(&i, &src->spt_hash);
+	while (hash_next(&i))
+	{
+		/* src_page 정보 */
+		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
+		enum vm_type type = src_page->operations->type;
+		void *upage = src_page->va;
+		bool writable = src_page->writable;
+
+		/* type이 uninit이면 */
+		if (type == VM_UNINIT)
+		{ /* uninit page 생성 & 초기화 */
+			vm_initializer *init = src_page->uninit.init;
+			void *aux = src_page->uninit.aux;
+			vm_alloc_page_with_initializer(VM_ANON, upage, writable, init, aux);
+			continue;
+		}
+
+		/* type이 anon이면 */
+		if (!vm_alloc_page(type, upage, writable)) // uninit page 생성 & 초기화
+			return false;						   // init이랑 aux는 Lazy Loading에 필요. 지금 만드는 페이지는 기다리지 않고 바로 내용을 넣어줄 것이므로 필요 없음
+
+		/* vm_claim_page으로 요청해서 매핑 & 페이지 타입에 맞게 초기화 */
+		if (!vm_claim_page(upage))
+			return false;
+
+		/* 매핑된 프레임에 내용 로딩 */
+		struct page *dst_page = spt_find_page(dst, upage);
+		memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+	}
+	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
+/* SPT가 보유하고 있던 모든 리소스를 해제하는 함수 (process_exit(), process_cleanup()에서 호출) */
 void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	/* 페이지 항목들을 순회하며 테이블 내의 페이지들에 대해 destroy(page)를 호출 */
+	hash_clear(&spt->spt_hash, hash_page_destroy); // 해시 테이블의 모든 요소를 제거
+
+	/** hash_destroy가 아닌 hash_clear를 사용해야 하는 이유
+	 * 여기서 hash_destroy 함수를 사용하면 hash가 사용하던 메모리(hash->bucket) 자체도 반환한다.
+	 * process가 실행될 때 hash table을 생성한 이후에 process_clean()이 호출되는데,
+	 * 이때는 hash table은 남겨두고 안의 요소들만 제거되어야 한다.
+	 * 따라서, hash의 요소들만 제거하는 hash_clear를 사용해야 한다.
+	 */
+}
+
+void hash_page_destroy(struct hash_elem *e, void *aux)
+{
+	struct page *page = hash_entry(e, struct page, hash_elem);
+	destroy(page);
+	free(page);
 }
 
 /* Returns a hash value for page p. */

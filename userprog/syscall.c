@@ -14,6 +14,7 @@
 #include "devices/input.h"
 #include "lib/kernel/stdio.h"
 #include "threads/palloc.h"
+#include "vm/vm.h"
 
 struct lock filesys_lock;
 
@@ -123,7 +124,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 void check_address(void *uaddr)
 {
 	struct thread *cur = thread_current();
-	if (uaddr == NULL || is_kernel_vaddr(uaddr) || pml4_get_page(cur->pml4, uaddr) == NULL)
+	if (uaddr == NULL || is_kernel_vaddr(uaddr) || !spt_find_page(&thread_current()->spt, uaddr))
 	{
 		exit(-1);
 	}
