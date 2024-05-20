@@ -69,6 +69,11 @@ void syscall_handler(struct intr_frame *f UNUSED)
 {
 	// TODO: Your implementation goes here.
 	int syscall_number = f->R.rax; // 원하는 기능에 해당하는 시스템 콜 번호
+
+#ifdef VM
+	thread_current()->rsp = f->rsp; /* 커널 모드로 전환될 때 (시스템콜이 호출될 때) syscall_handler 함수에서 스택 포인터를 저장 */
+#endif
+
 	switch (syscall_number)
 	{
 	case SYS_HALT:
@@ -240,6 +245,12 @@ int read(int fd, void *buffer, unsigned size)
 
 			lock_release(&filesys_lock);
 			return -1;
+		}
+		struct page *page = spt_find_page(&thread_current()->spt, buffer);
+		if (page && !page->writable)
+		{
+			lock_release(&filesys_lock);
+			exit(-1);
 		}
 		bytes_read = file_read(file, buffer, size);
 		lock_release(&filesys_lock);

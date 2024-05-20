@@ -22,7 +22,7 @@ enum thread_status
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
-#define TID_ERROR ((tid_t)-1) /* Error value for tid_t. */
+#define TID_ERROR ((tid_t) - 1) /* Error value for tid_t. */
 
 /* Thread priorities. */
 #define PRI_MIN 0	   /* Lowest priority. */
@@ -112,6 +112,7 @@ struct thread
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
+	void *rsp; /* 커널 모드로 전환될 때 (시스템콜이 호출될 때) 현재 유저 스택의 스택 포인터를 저장해두기 위한 필드를 thread 구조체에 추가 */
 #endif
 
 	/* Owned by thread.c. */
