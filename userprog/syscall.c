@@ -21,18 +21,17 @@ struct lock filesys_lock;
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 void check_address(void *uaddr);
-void exit(int status);
-
 void halt(void);
+void exit(int status);
 bool create(const char *file, unsigned initial_size);
 bool remove(const char *file);
 int open(const char *file_name);
 int filesize(int fd);
+int read(int fd, void *buffer, unsigned size);
+int write(int fd, const void *buffer, unsigned size);
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
-int read(int fd, void *buffer, unsigned size);
-int write(int fd, const void *buffer, unsigned size);
 tid_t fork(const char *thread_name, struct intr_frame *f);
 int exec(const char *file);
 int wait(int pid);
@@ -139,17 +138,17 @@ void check_address(void *uaddr)
 	}
 }
 
+void halt(void)
+{
+	power_off();
+}
+
 void exit(int status)
 {
 	struct thread *cur = thread_current();
 	cur->exit_status = status;
 	printf("%s: exit(%d)\n", thread_name(), status);
 	thread_exit();
-}
-
-void halt(void)
-{
-	power_off();
 }
 
 bool create(const char *file, unsigned initial_size)
