@@ -96,15 +96,29 @@ struct thread
 	enum thread_status status; /* Thread state. */
 	char name[16];			   /* Name (for debugging purposes). */
 	int priority;			   /* Priority. */
-	int64_t wakeup;			   // 깨어나야 하는 ticks 값
-	int init_priority;		   // 고유의 priority 값을 저장하는 변수
+	int64_t wakeup_ticks;	   // 깨어나야 하는 ticks 값
 
 	/* Shared between thread.c and synch.c. */
-	struct list_elem elem;			/* List element. */
+	struct list_elem elem; /* List element. */
+
+	int init_priority;				// 고유의 priority 값을 저장하는 변수
 	struct lock *wait_on_lock;		// 스레드가 현재 얻기 위해 기다리고 있는 lock 으로 스레드는 이 lock이 release 되기를 기다린다!
 	struct list donations;			// 자신에게 priority를 나누어 준 스레드들의 리스트
 	struct list_elem donation_elem; // 이 donations리스트를 관리하기 위한 element, thread구조체의 그냥 elem과 구분하여 사용
 
+	int exit_status;
+	struct file **fdt;
+	int next_fd;
+
+	struct intr_frame parent_if;
+	struct list child_list;
+	struct list_elem child_elem;
+
+	struct semaphore load_sema; // 현재 스레드가 load되는 동안 부모가 기다리게 하기 위한 semaphore
+	struct semaphore exit_sema;
+	struct semaphore wait_sema;
+
+	struct file *running; // 현재 실행중인 파일
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4; /* Page map level 4 */
@@ -118,21 +132,6 @@ struct thread
 	/* Owned by thread.c. */
 	struct intr_frame tf; /* Information for switching */
 	unsigned magic;		  /* Detects stack overflow. */
-
-	/*Project 2*/
-	int exit_status;
-
-	struct file **fdt;
-	int next_fd;
-
-	struct intr_frame parent_if;
-	struct list child_list;
-	struct list_elem child_elem;
-
-	struct semaphore load_sema;
-	struct semaphore exit_sema;
-	struct semaphore wait_sema;
-	struct file *running; // 현재 실행중인 파일
 };
 
 /* If false (default), use round-robin scheduler.
@@ -158,21 +157,21 @@ const char *thread_name(void);
 
 void thread_exit(void) NO_RETURN;
 void thread_yield(void);
-void thread_test_preemption(void);
 
 void thread_sleep(int64_t ticks);
-void thread_awake(int64_t ticks);
+void thread_wakeup(int64_t current_ticks);
+bool thread_compare_ticks(const struct list_elem *a, const struct list_elem *b, void *aux);
+
+int thread_get_priority(void);
+void thread_set_priority(int);
 
 bool thread_compare_priority(struct list_elem *l, struct list_elem *s, void *aux UNUSED);
 bool sema_compare_priority(const struct list_elem *l, const struct list_elem *s, void *aux UNUSED);
 bool thread_compare_donate_priority(const struct list_elem *l, const struct list_elem *s, void *aux UNUSED);
+void thread_test_preemption(void);
 void donate_priority(void);
-
 void remove_with_lock(struct lock *lock);
 void refresh_priority(void);
-
-int thread_get_priority(void);
-void thread_set_priority(int);
 
 int thread_get_nice(void);
 void thread_set_nice(int);
