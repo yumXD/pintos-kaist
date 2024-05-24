@@ -92,9 +92,15 @@ static uint64_t gdt[3] = {0, 0x00af9a000000ffff, 0x00cf92000000ffff};
 
    It is not safe to call thread_current() until this function
    finishes. */
+
+// #define DEBUG // 디버깅할때 주석 해제
+
 void thread_init(void)
 {
-	// printf("-----1️⃣ thread_init 방문(메인 쓰레드 만들고 실행할꺼임)\n");
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_init()\" visit ( \"main\" Thread Create ) \n");
+#endif // DEBUG
+
 	ASSERT(intr_get_level() == INTR_OFF);
 
 	/* Reload the temporal gdt for the kernel
@@ -122,7 +128,10 @@ void thread_init(void)
    Also creates the idle thread. */
 void thread_start(void)
 {
-	// printf("-----1️⃣ thread_start 방문(유휴 스레드 만들꺼임)\n");
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_start()\" visit ( \"%s\" : \"idle\" Thread Create to do ) \n", thread_name());
+#endif // DEBUG
+
 	/* Create the idle thread. */
 	struct semaphore idle_started;
 	sema_init(&idle_started, 0);
@@ -131,16 +140,24 @@ void thread_start(void)
 	/* Start preemptive thread scheduling. */
 	intr_enable();
 
-	// printf("-----1️⃣ thread_start 대기중... - \"%s\" 스레드 BLOCKED\n", thread_name());
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_start()\" waiting... ( \"%s\" Thread BLOCKED ) \n", thread_name());
+#endif // DEBUG
+
 	/* Wait for the idle thread to initialize idle_thread. */
 	sema_down(&idle_started);
-	// printf("-----1️⃣ thread_start 대기 해제~~ - \"%s\" 스레드\n", thread_name());
+
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_start()\" continue... ( \"%s\" Thread Running ) \n", thread_name());
+#endif // DEBUG
 }
 
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
 void thread_tick(void)
 {
+	// not here debug...
+
 	struct thread *t = thread_current();
 
 	/* Update statistics. */
@@ -183,7 +200,10 @@ void thread_print_stats(void)
 tid_t thread_create(const char *name, int priority,
 					thread_func *function, void *aux)
 {
-	// printf("🎯 thread_create 방문 - \"%s\" 스레드 생성 예정!\n", name);
+#ifdef DEBUG
+	printf("🎯 \"thread_create()\" visit ( \"%s\" : \"%s\" Thread Create to do ) \n", thread_name(), name);
+#endif // DEBUG
+
 	struct thread *t;
 	tid_t tid;
 
@@ -231,6 +251,10 @@ tid_t thread_create(const char *name, int priority,
    primitives in synch.h. */
 void thread_block(void)
 {
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_block()\" visit ( \"%s\" Thread THREAD_BLOCKED to do ) \n", thread_name());
+#endif // DEBUG
+
 	ASSERT(!intr_context());
 	ASSERT(intr_get_level() == INTR_OFF);
 	thread_current()->status = THREAD_BLOCKED;
@@ -247,6 +271,9 @@ void thread_block(void)
    update other data. */
 void thread_unblock(struct thread *t)
 {
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_unblock()\" visit ( \"%s\" : \"%s\" Thread THREAD_READY & insert ready_list to do ) \n", thread_name(), t->name);
+#endif // DEBUG
 	enum intr_level old_level;
 
 	ASSERT(is_thread(t));
@@ -296,6 +323,10 @@ tid_t thread_tid(void)
    returns to the caller. */
 void thread_exit(void)
 {
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_exit()\" visit ( \"%s\" Thread THREAD_DYING to do) \n", thread_name());
+#endif // DEBUG
+
 	ASSERT(!intr_context());
 
 #ifdef USERPROG
@@ -313,6 +344,8 @@ void thread_exit(void)
    may be scheduled again immediately at the scheduler's whim. */
 void thread_yield(void)
 {
+	// not here debug...
+
 	struct thread *curr = thread_current();
 	enum intr_level old_level;
 
@@ -331,6 +364,8 @@ void thread_yield(void)
 
 void thread_sleep(int64_t ticks)
 {
+	// not here debug...
+
 	struct thread *curr;
 	enum intr_level old_level;
 
@@ -349,6 +384,8 @@ void thread_sleep(int64_t ticks)
 
 void thread_wakeup(int64_t current_ticks)
 {
+	// not here debug...
+
 	enum intr_level old_level;
 	old_level = intr_disable(); // 인터럽트 비활성
 
@@ -380,6 +417,10 @@ bool thread_compare_ticks(const struct list_elem *a, const struct list_elem *b, 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
+#ifdef DEBUG
+	printf("-----1️⃣ \"thread_set_priority()\" visit ( \"%s\" Thread %d priority change) \n", thread_name(), new_priority);
+#endif // DEBUG
+
 	thread_current()->init_priority = new_priority;
 	refresh_priority();
 	thread_test_preemption();
@@ -401,6 +442,8 @@ bool thread_compare_priority(struct list_elem *l, struct list_elem *s, void *aux
 
 void thread_test_preemption(void)
 {
+	// not here debug...
+
 	if (thread_current() == idle_thread)
 		return;
 	if (list_empty(&ready_list))
@@ -451,11 +494,13 @@ int thread_get_recent_cpu(void)
 static void
 idle(void *idle_started_ UNUSED)
 {
-	// printf("-----1️⃣💡 idle 방문 - \"%s\" 스레드\n", thread_name());
+#ifdef DEBUG
+	printf("-----1️⃣💡 \"idle()\" visit ( \"%s\" Thread Running & Setting )\n", thread_name());
+#endif // DEBUG
+
 	struct semaphore *idle_started = idle_started_;
 
 	idle_thread = thread_current();
-	// printf("-----1️⃣💡 idle - idle_thread 할당된 쓰레드: \"%s\"\n", idle_thread->name);
 	sema_up(idle_started);
 	for (;;)
 	{
@@ -477,13 +522,16 @@ idle(void *idle_started_ UNUSED)
 		   7.11.1 "HLT Instruction". */
 		asm volatile("sti; hlt" : : : "memory");
 	}
-	// 이 라인은 안옴
 }
 
 /* Function used as the basis for a kernel thread. */
 static void
 kernel_thread(thread_func *function, void *aux)
 {
+#ifdef DEBUG
+	printf("-----1️⃣ \"kernel_thread()\" visit ( \"%s\" Thread )\n", thread_name());
+#endif // DEBUG
+
 	ASSERT(function != NULL);
 
 	intr_enable(); /* The scheduler runs with interrupts off. */
@@ -496,6 +544,10 @@ kernel_thread(thread_func *function, void *aux)
 static void
 init_thread(struct thread *t, const char *name, int priority)
 {
+#ifdef DEBUG
+	printf("-----1️⃣ \"init_thread()\" visit ( \"%s\" init) \n", name);
+#endif // DEBUG
+
 	ASSERT(t != NULL);
 	ASSERT(PRI_MIN <= priority && priority <= PRI_MAX);
 	ASSERT(name != NULL);
@@ -512,8 +564,8 @@ init_thread(struct thread *t, const char *name, int priority)
 
 	t->exit_status = 0;
 	t->next_fd = 2;
-	sema_init(&t->load_sema, 0); // 자식 대기용...
-	sema_init(&t->exit_sema, 0); // 죽일 자식 리스트
+	sema_init(&t->load_sema, 0);
+	sema_init(&t->exit_sema, 0);
 	sema_init(&t->wait_sema, 0);
 	list_init(&(t->child_list));
 }
@@ -535,6 +587,8 @@ next_thread_to_run(void)
 /* Use iretq to launch the thread */
 void do_iret(struct intr_frame *tf)
 {
+	// not here debug...
+
 	__asm __volatile(
 		"movq %0, %%rsp\n"
 		"movq 0(%%rsp),%%r15\n"
@@ -573,6 +627,8 @@ void do_iret(struct intr_frame *tf)
 static void
 thread_launch(struct thread *th)
 {
+	// not here debug...
+
 	uint64_t tf_cur = (uint64_t)&running_thread()->tf;
 	uint64_t tf = (uint64_t)&th->tf;
 	ASSERT(intr_get_level() == INTR_OFF);
@@ -636,6 +692,8 @@ thread_launch(struct thread *th)
 static void
 do_schedule(int status)
 {
+	// not here debug...
+
 	ASSERT(intr_get_level() == INTR_OFF);
 	ASSERT(thread_current()->status == THREAD_RUNNING);
 	while (!list_empty(&destruction_req))
@@ -652,6 +710,8 @@ do_schedule(int status)
 static void
 schedule(void)
 {
+	// not here debug...
+
 	struct thread *curr = running_thread();
 	struct thread *next = next_thread_to_run();
 

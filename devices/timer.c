@@ -96,6 +96,7 @@ timer_elapsed(int64_t then)
 // 타이머 틱(tick) 동안 실행을 일시 중지
 void timer_sleep(int64_t ticks)
 {
+	// not here debug...
 	int64_t start = timer_ticks();
 
 	ASSERT(intr_get_level() == INTR_ON);
@@ -131,6 +132,8 @@ void timer_print_stats(void)
 static void
 timer_interrupt(struct intr_frame *args UNUSED)
 {
+	// not here debug...
+
 	ticks++;
 	thread_tick();
 	thread_wakeup(ticks); // ticks 가 증가할때마다 awake 작업 수행
