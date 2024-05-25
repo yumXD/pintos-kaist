@@ -200,8 +200,20 @@ void lock_acquire(struct lock *lock)
 	ASSERT(!intr_context());
 	ASSERT(!lock_held_by_current_thread(lock));
 
+	/* project1 - Priority Inversion Problem */
+	struct thread *t = thread_current();
+	if (lock->holder != NULL)
+	{
+		t->wait_lock = lock;
+		list_push_back(&lock->holder->donations, &t->donation_elem);
+		donate_priority();
+	}
+
 	sema_down(&lock->semaphore);
-	lock->holder = thread_current();
+
+	/* project1 - Priority Inversion Problem */
+	t->wait_lock = NULL;
+	lock->holder = t;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -235,6 +247,11 @@ void lock_release(struct lock *lock)
 	ASSERT(lock_held_by_current_thread(lock));
 
 	lock->holder = NULL;
+
+	/* project1 - Priority Inversion Problem */
+	remove_with_lock(lock);
+	refresh_priority();
+
 	sema_up(&lock->semaphore);
 }
 
